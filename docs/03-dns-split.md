@@ -16,6 +16,19 @@ If you don't split — the mobile app breaks.
 The real cloud IP can change — you only need to avoid overriding it for
 non-purifier clients.
 
+## IP conventions used in the examples below
+
+Examples use these placeholder IPs. **Substitute your own everywhere.**
+
+| Example IP | What it represents | Replace with |
+|------------|-------------------|--------------|
+| `10.10.10.1` | Your DNS server / pfSense LAN gateway | Your DNS server's IP |
+| `10.10.10.10` | Your local MQTT broker host | Your broker host's IP |
+| `10.10.10.70` | Static IP reserved for the purifier (DHCP mapping) | Any free LAN IP **outside** your DHCP pool |
+| `10.10.10.11` / `10.10.10.12` | AdGuard Home instances (two-node example) | Your AdGuard IP(s) |
+| `10.10.10.123` | Home Assistant host | Your HA IP |
+| `65.1.150.122` | Qubo's real cloud MQTT broker | Resolved from `dig mqtt.platform.quboworld.com` |
+
 ---
 
 ## Step 3.1 — Find the real cloud IP (for sanity)
