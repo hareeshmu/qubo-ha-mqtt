@@ -1,0 +1,12 @@
+type: entities
+title: Filter & Care
+icon: mdi:air-filter
+entities:
+  - entity: sensor.qubo_r700_filter_life
+    name: Filter Life
+  - entity: button.qubo_r700_refresh_filter
+    name: Refresh Status
+  - entity: button.qubo_r700_refresh_aqi
+    name: Refresh AQI
+  - entity: button.qubo_r700_reboot
+    name: Reboot Device

@@ -1,0 +1,13 @@
+type: glance
+title: Today's PM2.5
+columns: 4
+state_color: false
+entities:
+  - entity: sensor.qubo_r700_usage_minpm25
+    name: Min
+  - entity: sensor.qubo_r700_usage_avgpm25
+    name: Avg
+  - entity: sensor.qubo_r700_usage_maxpm25
+    name: Max
+  - entity: sensor.qubo_r700_usage_totalusages
+    name: Minutes

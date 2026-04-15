@@ -1,0 +1,27 @@
+# Copy this to devices.yaml and fill in YOUR values.
+# See docs/04-capture-jwt.md for how to obtain the UUIDs + MAC.
+
+mqtt:
+  host: 10.10.10.10          # your broker IP
+  port: 1883
+  username: mqtt
+  password: CHANGE_ME
+
+ha_discovery_prefix: homeassistant
+
+devices:
+  # Repeat this block per device.
+  - name: Qubo Air Purifier
+    slug: qubo_r700           # used in HA entity_ids (switch.qubo_r700_fan, etc.)
+    manufacturer: Qubo        # shown in HA device card
+    model: Smart Air Purifier R700
+    device_type: air_purifier # currently only this type implemented
+    mac: 94:51:DC:XX:XX:XX
+
+    # From /monitor/+/+/heartbeat on the broker:
+    unit_uuid:   00000000-0000-0000-0000-000000000000
+    device_uuid: 00000000-0000-0000-0000-000000000000
+    entity_uuid: 00000000-0000-0000-0000-000000000000
+
+    # From the broker's client list ( username field on the device's connection):
+    user_uuid:   00000000-0000-0000-0000-000000000000

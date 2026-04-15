@@ -1,0 +1,7 @@
+capture.log
+*.pyc
+__pycache__/
+.venv/
+devices.local.yaml
+devices.yaml
+capture-schedule.log

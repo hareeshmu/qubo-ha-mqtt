@@ -1,0 +1,48 @@
+type: custom:purifier-card
+entity: fan.qubo_r700_fan
+show_name: true
+show_state: true
+show_toolbar: true
+
+aqi:
+  entity: sensor.qubo_r700_pm25
+  unit: µg/m³
+
+stats:
+  - entity: sensor.qubo_r700_pm25
+    subtitle: PM2.5
+    unit: µg/m³
+  - entity: sensor.qubo_r700_filter_life
+    subtitle: Filter (h)
+    unit: h
+  - entity: sensor.qubo_r700_usage_totalusages
+    subtitle: Usage
+    unit: min
+
+shortcuts:
+  - name: Auto
+    icon: mdi:fan-auto
+    preset_mode: auto
+  - name: Manual
+    icon: mdi:hand-back-right
+    preset_mode: manual
+  - name: Sleep
+    icon: mdi:power-sleep
+    preset_mode: sleep
+  - name: QSensAI
+    icon: mdi:robot
+    preset_mode: qsense
+
+buttons:
+  - name: Child Lock
+    icon: mdi:lock
+    entity: switch.qubo_r700_child_lock
+    service: switch.toggle
+  - name: Silent
+    icon: mdi:volume-off
+    entity: switch.qubo_r700_silent_mode
+    service: switch.toggle
+  - name: Refresh AQI
+    icon: mdi:refresh
+    entity: button.qubo_r700_refresh_aqi
+    service: button.press

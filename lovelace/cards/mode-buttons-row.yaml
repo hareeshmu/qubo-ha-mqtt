@@ -1,0 +1,46 @@
+type: horizontal-stack
+cards:
+  - type: custom:mushroom-template-card
+    primary: Off
+    icon: mdi:power
+    tap_action:
+      action: call-service
+      service: fan.turn_off
+      target: {entity_id: fan.qubo_r700_fan}
+    icon_color: "{% if is_state('fan.qubo_r700_fan','off') %}red{% else %}grey{% endif %}"
+  - type: custom:mushroom-template-card
+    primary: Auto
+    icon: mdi:fan-auto
+    tap_action:
+      action: call-service
+      service: fan.set_preset_mode
+      target: {entity_id: fan.qubo_r700_fan}
+      data: {preset_mode: auto}
+    icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='auto' %}blue{% else %}grey{% endif %}"
+  - type: custom:mushroom-template-card
+    primary: Manual
+    icon: mdi:tune-vertical
+    tap_action:
+      action: call-service
+      service: fan.set_preset_mode
+      target: {entity_id: fan.qubo_r700_fan}
+      data: {preset_mode: manual}
+    icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='manual' %}blue{% else %}grey{% endif %}"
+  - type: custom:mushroom-template-card
+    primary: Sleep
+    icon: mdi:power-sleep
+    tap_action:
+      action: call-service
+      service: fan.set_preset_mode
+      target: {entity_id: fan.qubo_r700_fan}
+      data: {preset_mode: sleep}
+    icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='sleep' %}blue{% else %}grey{% endif %}"
+  - type: custom:mushroom-template-card
+    primary: QSensAI
+    icon: mdi:robot
+    tap_action:
+      action: call-service
+      service: fan.set_preset_mode
+      target: {entity_id: fan.qubo_r700_fan}
+      data: {preset_mode: qsense}
+    icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='qsense' %}blue{% else %}grey{% endif %}"

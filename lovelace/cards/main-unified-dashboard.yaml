@@ -1,0 +1,475 @@
+# Unified "main" card — mimics Qubo app: black background, ethereal ANIMATED
+# green halo, PM2.5 reading center, mode buttons at bottom, one visual card.
+#
+# HACS requirements (install if missing):
+#   - button-card         (you have it)
+#   - mushroom            (you have it)
+#   - stack-in-card       https://github.com/custom-cards/stack-in-card
+#   - card-mod            https://github.com/thomasloven/lovelace-card-mod
+#
+# Without stack-in-card/card-mod it still renders, just without the outer
+# seamless card; you can remove those wrappers.
+
+type: custom:stack-in-card
+mode: vertical
+keep:
+  background: true
+  border_radius: true
+  outer_padding: false
+card_mod:
+  style: |
+    ha-card {
+      background: #0a0f0a !important;
+      border-radius: 22px;
+      border: none;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      padding: 8px;
+    }
+cards:
+  # ── ANIMATED HALO ──
+  - type: custom:button-card
+    entity: sensor.qubo_r700_pm25
+    show_state: false
+    show_name: false
+    show_icon: false
+    tap_action:
+      action: more-info
+      entity: fan.qubo_r700_fan
+    styles:
+      card:
+        - background: transparent
+        - height: 420px
+        - border: none
+        - box-shadow: none
+        - padding: 0
+      grid:
+        - place-items: center
+        - grid-template-areas: "\"ring\""
+        - grid-template-columns: 1fr
+        - grid-template-rows: 1fr
+      custom_fields:
+        ring:
+          - display: flex
+          - justify-content: center
+          - align-items: center
+          - width: 100%
+          - height: 100%
+    extra_styles: |
+      @keyframes qubo-breathe {
+        0%, 100% {
+          box-shadow:
+            0 0 30px 6px  rgba(var(--ring-rgb, 134,239,172), 0.20),
+            0 0 0 1.5px   rgba(var(--ring-rgb, 134,239,172), 0.75) inset;
+        }
+        50% {
+          box-shadow:
+            0 0 40px 10px rgba(var(--ring-rgb, 134,239,172), 0.32),
+            0 0 0 2px     rgba(var(--ring-rgb, 134,239,172), 0.95) inset;
+        }
+      }
+      @keyframes qubo-suck {
+        0%   { transform: translate(var(--sx), var(--sy)) scale(1);   opacity: 0;   }
+        15%  {                                                         opacity: 0.9; }
+        85%  {                                                         opacity: 0.3; }
+        100% { transform: translate(0, 0)                  scale(0.2); opacity: 0;   }
+      }
+      .qubo-halo-wrapper {
+        position: relative;
+        width: min(85%, 340px);
+        aspect-ratio: 1 / 1;
+      }
+      .qubo-halo {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(circle at center, #0f1410 72%, rgba(0,0,0,0) 100%);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        color: white;
+        font-family: -apple-system, system-ui, sans-serif;
+        animation: qubo-breathe 4s ease-in-out infinite;
+        overflow: visible;
+      }
+      .qubo-particle {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 4px; height: 4px;
+        margin: -2px 0 0 -2px;
+        background: rgb(var(--ring-rgb, 134,239,172));
+        border-radius: 50%;
+        box-shadow: 0 0 6px rgba(var(--ring-rgb, 134,239,172), 0.9);
+        animation: qubo-suck 6s ease-in infinite;
+        pointer-events: none;
+      }
+    custom_fields:
+      ring: |
+        [[[
+          var v = parseInt(entity.state) || 0;
+          var label = v < 50 ? 'Good' : v <= 100 ? 'Moderate' : v < 200 ? 'Poor' : 'Very Poor';
+          var labelColor = v < 50 ? '#a7f3d0' : v <= 100 ? '#fef08a' : v < 200 ? '#fdba74' : '#fca5a5';
+          var fan = states['fan.qubo_r700_fan'];
+          var mode = fan && fan.state === 'on' ? (fan.attributes.preset_mode || 'auto') : 'off';
+          var modeLabels = {
+            off: 'OFF', auto: 'AUTO', manual: 'MANUAL', sleep: 'SLEEP', qsense: 'QSENSAI'
+          };
+          var modeLabel = modeLabels[mode] || '';
+          // Ring color reflects AIR QUALITY (PM2.5) — green/amber/orange/red.
+          var ringRgb = v < 50   ? '134,239,172'   // Good      (0-49)    mint green
+                      : v <= 100 ? '251,191,36'    // Moderate  (50-100)  amber
+                      : v < 200  ? '251,146,60'    // Poor      (101-199) orange
+                      :            '248,113,113';  // Very Poor (200+)    red
+          // When purifier is OFF, dim the ring to slate regardless of PM2.5.
+          if (mode === 'off') ringRgb = '100,116,139';
+          return `
+            <div style="width:100%; height:100%; display:flex; justify-content:center; align-items:center; --ring-rgb: ${ringRgb};">
+            <div class="qubo-halo-wrapper">
+              <div class="qubo-halo">
+                <div style="position:relative; z-index:2; text-align:center;">
+                  <div style="font-size: clamp(11px, 2vw, 14px); color: #9ca3af; letter-spacing: 3px; margin-bottom: 6px;">PM 2.5</div>
+                  <div style="font-size: clamp(60px, 14vw, 96px); font-weight: 300; line-height: 1; color: white;">${v}</div>
+                  <div style="font-size: clamp(18px, 3.5vw, 24px); color: ${labelColor}; margin-top: 8px; font-weight: 300;">${label}</div>
+                  <div style="font-size: clamp(11px, 2vw, 13px); color: rgb(${ringRgb}); letter-spacing: 4px; font-weight: 500; margin-top: 10px; opacity: 0.85;">${modeLabel}</div>
+                </div>
+              </div>
+              <!-- particles flow from outside halo toward center -->
+              <div class="qubo-particle" style="--sx: -180px; --sy: -40px;  animation-delay: 0s;"></div>
+              <div class="qubo-particle" style="--sx:  170px; --sy:  60px;  animation-delay: 0.8s;"></div>
+              <div class="qubo-particle" style="--sx: -100px; --sy:  160px; animation-delay: 1.6s;"></div>
+              <div class="qubo-particle" style="--sx:  60px;  --sy: -170px; animation-delay: 2.4s;"></div>
+              <div class="qubo-particle" style="--sx: -160px; --sy:  120px; animation-delay: 3.2s;"></div>
+              <div class="qubo-particle" style="--sx:  150px; --sy: -120px; animation-delay: 4.0s;"></div>
+              <div class="qubo-particle" style="--sx: -60px;  --sy: -170px; animation-delay: 4.8s;"></div>
+              <div class="qubo-particle" style="--sx:  180px; --sy:  0px;   animation-delay: 5.6s;"></div>
+              <div class="qubo-particle" style="--sx:  30px;  --sy:  180px; animation-delay: 2.0s; width:3px; height:3px;"></div>
+              <div class="qubo-particle" style="--sx: -180px; --sy:  30px;  animation-delay: 3.6s; width:3px; height:3px;"></div>
+            </div>
+            </div>
+          `;
+        ]]]
+
+  # ── Speed pills (visible only in Manual mode) — above mode row ──
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: sensor.qubo_r700_current_mode
+        state: Manual
+    card:
+      type: horizontal-stack
+      card_mod:
+        style: |
+          :host > div,
+          #root {
+            justify-content: center !important;
+            display: flex !important;
+          }
+          :host > div > *,
+          #root > * {
+            flex: 0 0 auto !important;
+            width: auto !important;
+          }
+      cards:
+        - type: custom:button-card
+          entity: fan.qubo_r700_fan
+          triggers_update: fan.qubo_r700_fan
+          show_state: false
+          name: Low
+          icon: mdi:fan-speed-1
+          card_mod:
+            style: |
+              ha-card {
+                {% set p = state_attr('fan.qubo_r700_fan','percentage') | int(0) %}
+                {% if p < 40 %}
+                background: rgba(96,165,250,0.22) !important;
+                border-color: rgba(96,165,250,0.7) !important;
+                {% endif %}
+              }
+          tap_action:
+            action: call-service
+            service: fan.set_percentage
+            target: {entity_id: fan.qubo_r700_fan}
+            data: {percentage: 33}
+          styles:
+            card:
+              - height: 32px
+              - width: max-content
+              - border-radius: 16px
+              - padding: 0 14px
+              - border: 1px solid rgba(255,255,255,0.06)
+              - background: rgba(40,50,60,0.5)
+              - box-shadow: none
+              - margin: 4px 6px
+              - display: flex
+              - flex-direction: row
+              - align-items: center
+              - justify-content: center
+              - gap: 6px
+            grid:
+              - display: flex
+              - flex-direction: row
+              - align-items: center
+              - justify-content: center
+              - gap: 6px
+            img_cell:
+              - display: flex
+              - align-items: center
+              - justify-content: center
+              - width: 18px
+              - height: 18px
+            icon:
+              - width: 16px
+              - height: 16px
+              - color: '#94a3b8'
+            name:
+              - font-size: 12px
+              - color: '#94a3b8'
+              - font-weight: 500
+              - line-height: 1
+          state:
+            - operator: template
+              value: |
+                [[[ return (entity.attributes.percentage || 0) < 40; ]]]
+              styles:
+                card:
+                  - background: rgba(96,165,250,0.22)
+                  - border: 1.5px solid rgba(96,165,250,0.7)
+                icon:
+                  - color: '#60a5fa'
+                name:
+                  - color: white
+
+        - type: custom:button-card
+          entity: fan.qubo_r700_fan
+          triggers_update: fan.qubo_r700_fan
+          show_state: false
+          name: Medium
+          icon: mdi:fan-speed-2
+          card_mod:
+            style: |
+              ha-card {
+                {% set p = state_attr('fan.qubo_r700_fan','percentage') | int(0) %}
+                {% if p >= 40 and p < 80 %}
+                background: rgba(96,165,250,0.22) !important;
+                border-color: rgba(96,165,250,0.7) !important;
+                {% endif %}
+              }
+          tap_action:
+            action: call-service
+            service: fan.set_percentage
+            target: {entity_id: fan.qubo_r700_fan}
+            data: {percentage: 66}
+          styles:
+            card:
+              - height: 32px
+              - width: max-content
+              - border-radius: 16px
+              - padding: 0 14px
+              - border: 1px solid rgba(255,255,255,0.06)
+              - background: rgba(40,50,60,0.5)
+              - box-shadow: none
+              - margin: 4px 6px
+              - display: flex
+              - flex-direction: row
+              - align-items: center
+              - justify-content: center
+              - gap: 6px
+            grid:
+              - display: flex
+              - flex-direction: row
+              - align-items: center
+              - justify-content: center
+              - gap: 6px
+            img_cell:
+              - display: flex
+              - align-items: center
+              - justify-content: center
+              - width: 18px
+              - height: 18px
+            icon:
+              - width: 16px
+              - height: 16px
+              - color: '#94a3b8'
+            name:
+              - font-size: 12px
+              - color: '#94a3b8'
+              - font-weight: 500
+              - line-height: 1
+          state:
+            - operator: template
+              value: |
+                [[[ var p = entity.attributes.percentage || 0; return p > 40 && p < 80; ]]]
+              styles:
+                card:
+                  - background: rgba(96,165,250,0.22)
+                  - border: 1.5px solid rgba(96,165,250,0.7)
+                icon:
+                  - color: '#60a5fa'
+                name:
+                  - color: white
+
+        - type: custom:button-card
+          entity: fan.qubo_r700_fan
+          triggers_update: fan.qubo_r700_fan
+          show_state: false
+          name: High
+          icon: mdi:fan-speed-3
+          card_mod:
+            style: |
+              ha-card {
+                {% set p = state_attr('fan.qubo_r700_fan','percentage') | int(0) %}
+                {% if p >= 80 %}
+                background: rgba(96,165,250,0.22) !important;
+                border-color: rgba(96,165,250,0.7) !important;
+                {% endif %}
+              }
+          tap_action:
+            action: call-service
+            service: fan.set_percentage
+            target: {entity_id: fan.qubo_r700_fan}
+            data: {percentage: 100}
+          styles:
+            card:
+              - height: 32px
+              - width: max-content
+              - border-radius: 16px
+              - padding: 0 14px
+              - border: 1px solid rgba(255,255,255,0.06)
+              - background: rgba(40,50,60,0.5)
+              - box-shadow: none
+              - margin: 4px 6px
+              - display: flex
+              - flex-direction: row
+              - align-items: center
+              - justify-content: center
+              - gap: 6px
+            grid:
+              - display: flex
+              - flex-direction: row
+              - align-items: center
+              - justify-content: center
+              - gap: 6px
+            img_cell:
+              - display: flex
+              - align-items: center
+              - justify-content: center
+              - width: 18px
+              - height: 18px
+            icon:
+              - width: 16px
+              - height: 16px
+              - color: '#94a3b8'
+            name:
+              - font-size: 12px
+              - color: '#94a3b8'
+              - font-weight: 500
+              - line-height: 1
+          state:
+            - operator: template
+              value: |
+                [[[ return (entity.attributes.percentage || 0) >= 80; ]]]
+              styles:
+                card:
+                  - background: rgba(96,165,250,0.22)
+                  - border: 1.5px solid rgba(96,165,250,0.7)
+                icon:
+                  - color: '#60a5fa'
+                name:
+                  - color: white
+
+  # ── Mode buttons (each lights up in its own mode color) ──
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Switch Off
+        icon: mdi:power
+        tap_action:
+          action: call-service
+          service: fan.turn_off
+          target: {entity_id: fan.qubo_r700_fan}
+        icon_color: "{% if is_state('fan.qubo_r700_fan','off') %}white{% else %}grey{% endif %}"
+        layout: vertical
+        fill_container: true
+        card_mod:
+          style: |
+            ha-card {
+              background: {% if is_state('fan.qubo_r700_fan','off') %}
+                linear-gradient(135deg,#475569 0%,#334155 100%) !important
+              {% else %} transparent !important {% endif %};
+              border: none !important;
+            }
+      - type: custom:mushroom-template-card
+        primary: Auto
+        icon: mdi:fan-auto
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: auto}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='auto' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+        layout: vertical
+        fill_container: true
+        card_mod:
+          style: |
+            ha-card {
+              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='auto' and is_state('fan.qubo_r700_fan','on') %}
+                linear-gradient(135deg,#22c55e 0%,#15803d 100%) !important
+              {% else %} transparent !important {% endif %};
+              border: none !important;
+            }
+      - type: custom:mushroom-template-card
+        primary: Manual
+        icon: mdi:tune-vertical
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: manual}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='manual' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+        layout: vertical
+        fill_container: true
+        card_mod:
+          style: |
+            ha-card {
+              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='manual' and is_state('fan.qubo_r700_fan','on') %}
+                linear-gradient(135deg,#14b8a6 0%,#0f766e 100%) !important
+              {% else %} transparent !important {% endif %};
+              border: none !important;
+            }
+      - type: custom:mushroom-template-card
+        primary: Sleep
+        icon: mdi:power-sleep
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: sleep}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='sleep' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+        layout: vertical
+        fill_container: true
+        card_mod:
+          style: |
+            ha-card {
+              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='sleep' and is_state('fan.qubo_r700_fan','on') %}
+                linear-gradient(135deg,#a78bfa 0%,#7c3aed 100%) !important
+              {% else %} transparent !important {% endif %};
+              border: none !important;
+            }
+      - type: custom:mushroom-template-card
+        primary: QSensAI
+        icon: mdi:robot-happy
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: qsense}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='qsense' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+        layout: vertical
+        fill_container: true
+        card_mod:
+          style: |
+            ha-card {
+              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='qsense' and is_state('fan.qubo_r700_fan','on') %}
+                linear-gradient(135deg,#2563eb 0%,#1e40af 100%) !important
+              {% else %} transparent !important {% endif %};
+              border: none !important;
+            }
+

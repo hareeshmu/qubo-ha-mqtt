@@ -1,0 +1,172 @@
+# Lovelace dashboard replicating the Qubo app UI for the R700 air purifier.
+#
+# Requires these HACS frontend cards:
+#   - Mushroom        (https://github.com/piitaya/lovelace-mushroom)
+#   - mini-graph-card (https://github.com/kalkih/mini-graph-card)
+#   - button-card     (https://github.com/custom-cards/button-card) - for the halo
+#
+# Paste as a single Manual card (vertical-stack) in a Panel-layout view.
+
+type: vertical-stack
+cards:
+  # ═══════════════════════════════════════════════════════════════════════
+  # 1. BIG HALO — PM2.5 with color-coded glow (Qubo app style)
+  # ═══════════════════════════════════════════════════════════════════════
+  - type: custom:button-card
+    entity: sensor.qubo_r700_pm25
+    name: PM 2.5
+    show_state: true
+    show_icon: false
+    tap_action:
+      action: more-info
+      entity: fan.qubo_r700_fan
+    styles:
+      card:
+        - background: '#0a0f0a'
+        - height: 300px
+        - border-radius: 20px
+        - border: none
+        - box-shadow: none
+        - padding: 30px
+      grid:
+        - grid-template-areas: '"ring"'
+        - place-items: center
+      name:
+        - display: none
+      state:
+        - display: none
+    custom_fields:
+      ring: |
+        [[[
+          var v = parseInt(entity.state) || 0;
+          var color = v < 30 ? '#4ade80' : v < 60 ? '#facc15' : v < 120 ? '#f97316' : '#ef4444';
+          var label = v < 30 ? 'Good' : v < 60 ? 'Moderate' : v < 120 ? 'Poor' : 'Very Poor';
+          return `
+            <div style="
+              width: 220px;
+              height: 220px;
+              border-radius: 50%;
+              background: radial-gradient(circle at center, #0a0f0a 60%, ${color}22 100%);
+              box-shadow: 0 0 60px ${color}88, inset 0 0 0 3px ${color};
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-family: system-ui, sans-serif;
+            ">
+              <div style="font-size: 14px; color: #8899aa; letter-spacing: 2px;">PM 2.5</div>
+              <div style="font-size: 64px; font-weight: 300; margin: 6px 0;">${v}</div>
+              <div style="font-size: 22px; color: #cbd5e1;">${label}</div>
+            </div>
+          `;
+        ]]]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 2. MODE BUTTONS ROW — Switch Off / Auto / Manual / Sleep / QSensAI
+  # ═══════════════════════════════════════════════════════════════════════
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Switch Off
+        icon: mdi:power
+        tap_action:
+          action: call-service
+          service: fan.turn_off
+          target: {entity_id: fan.qubo_r700_fan}
+        icon_color: "{% if is_state('fan.qubo_r700_fan','off') %}red{% else %}grey{% endif %}"
+      - type: custom:mushroom-template-card
+        primary: Auto
+        icon: mdi:fan-auto
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: auto}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='auto' %}blue{% else %}grey{% endif %}"
+      - type: custom:mushroom-template-card
+        primary: Manual
+        icon: mdi:tune-vertical
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: manual}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='manual' %}blue{% else %}grey{% endif %}"
+      - type: custom:mushroom-template-card
+        primary: Sleep
+        icon: mdi:power-sleep
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: sleep}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='sleep' %}blue{% else %}grey{% endif %}"
+      - type: custom:mushroom-template-card
+        primary: QSensAI
+        icon: mdi:robot
+        tap_action:
+          action: call-service
+          service: fan.set_preset_mode
+          target: {entity_id: fan.qubo_r700_fan}
+          data: {preset_mode: qsense}
+        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='qsense' %}blue{% else %}grey{% endif %}"
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 3. AIR QUALITY 24h GRAPH
+  # ═══════════════════════════════════════════════════════════════════════
+  - type: custom:mini-graph-card
+    name: Air Quality (24h)
+    icon: mdi:leaf
+    entities:
+      - {entity: sensor.qubo_r700_pm25, name: PM2.5, color: '#4ade80'}
+    hours_to_show: 24
+    points_per_hour: 1
+    group_by: hour
+    aggregate_func: avg
+    show: {name: true, icon: true, state: true, labels: true, extrema: true}
+    color_thresholds:
+      - {value: 0,   color: '#22dd22'}
+      - {value: 30,  color: '#aadd22'}
+      - {value: 60,  color: '#ffaa00'}
+      - {value: 90,  color: '#ff4400'}
+      - {value: 150, color: '#990000'}
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 4. PILL ROW — Timer / Child Lock / Silent Mode
+  # ═══════════════════════════════════════════════════════════════════════
+  - type: horizontal-stack
+    cards:
+      - {type: 'custom:mushroom-select-card', entity: select.qubo_r700_timer, name: 'Timer (h)', icon: mdi:timer}
+      - type: custom:mushroom-entity-card
+        entity: switch.qubo_r700_child_lock
+        name: Child Lock
+        icon: mdi:lock
+        tap_action: {action: toggle}
+      - type: custom:mushroom-entity-card
+        entity: switch.qubo_r700_silent_mode
+        name: Silent
+        icon: mdi:volume-off
+        tap_action: {action: toggle}
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 5. FILTER CARE
+  # ═══════════════════════════════════════════════════════════════════════
+  - type: entities
+    title: Filter change & care
+    icon: mdi:air-filter
+    entities:
+      - {entity: sensor.qubo_r700_filter_life, name: Hours remaining}
+      - {entity: button.qubo_r700_refresh_filter, name: Refresh status}
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 6. TODAY'S PM2.5 STATS
+  # ═══════════════════════════════════════════════════════════════════════
+  - type: glance
+    title: Today's PM2.5
+    state_color: false
+    entities:
+      - {entity: sensor.qubo_r700_usage_minpm25, name: Min}
+      - {entity: sensor.qubo_r700_usage_avgpm25, name: Avg}
+      - {entity: sensor.qubo_r700_usage_maxpm25, name: Max}
+      - {entity: sensor.qubo_r700_usage_totalusages, name: Minutes}

@@ -1,0 +1,25 @@
+type: custom:mini-graph-card
+name: Air Quality (24h)
+icon: mdi:leaf
+entities:
+  - entity: sensor.qubo_r700_pm25
+    name: PM2.5
+hours_to_show: 24
+points_per_hour: 2
+group_by: hour
+aggregate_func: avg
+line_width: 3
+show:
+  name: true
+  icon: true
+  state: true
+  labels: false
+  labels_secondary: false
+  extrema: true
+  fill: fade
+color_thresholds:
+  - {value: 0,   color: '#22dd22'}
+  - {value: 30,  color: '#aadd22'}
+  - {value: 60,  color: '#ffaa00'}
+  - {value: 90,  color: '#ff4400'}
+  - {value: 150, color: '#990000'}

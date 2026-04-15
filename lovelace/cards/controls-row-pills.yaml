@@ -1,0 +1,20 @@
+type: horizontal-stack
+cards:
+  - type: custom:mushroom-select-card
+    entity: select.qubo_r700_timer
+    name: Timer
+    icon: mdi:timer
+  - type: custom:mushroom-entity-card
+    entity: switch.qubo_r700_child_lock
+    name: Lock
+    icon: mdi:lock
+    tap_action: {action: toggle}
+  - type: custom:mushroom-entity-card
+    entity: switch.qubo_r700_silent_mode
+    name: Silent
+    icon: mdi:volume-off
+    tap_action: {action: toggle}
+  - type: custom:mushroom-select-card
+    entity: select.qubo_r700_dimmer
+    name: LED
+    icon: mdi:brightness-6
