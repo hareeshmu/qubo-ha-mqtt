@@ -36,29 +36,19 @@ cloud so the mobile app continues to work.
 
 ## Architecture
 
-```
-   iPhone / iPad / Android (Qubo app)
-                    │
-                    │  TLS/MQTT 8883 (cert-pinned, unbypassable)
-                    ▼
-      mqtt.platform.quboworld.com  (real cloud, AWS ap-south-1)
-                    ▲
-                    │  BRIDGE (local broker publishes/subscribes as device
-                    │          using device's captured JWT credentials)
-                    │
-  ┌─────────────────┴──────────────────────┐
-  │   Local MQTT broker (EMQX / Mosquitto) │
-  │   TLS listener on :8883                │
-  │   Cert SAN: mqtt.platform.quboworld... │
-  └───┬──────────────────────────────┬─────┘
-      │                              │
-      │ TLS/MQTT 8883                │ plain MQTT :1883
-      │ (purifier thinks this IS     │ (Home Assistant +
-      │  mqtt.platform.quboworld.com │  our publish.py)
-      │  due to DNS override)        │
-      ▼                              ▼
-  Qubo R700 purifier             Home Assistant
-```
+<p align="center">
+  <img src="docs/images/architecture.png" alt="Architecture diagram" width="640">
+</p>
+
+- **Qubo app** (phone) → talks to the real Qubo cloud over TLS (cert-pinned)
+- **Bridge** (inside your local broker) → speaks to the cloud as-if it were
+  the device, using the device's captured JWT credentials
+- **Local MQTT broker** → TLS listener on `:8883` with a cert whose SAN is
+  `mqtt.platform.quboworld.com`
+- **Purifier** → DNS-overridden to resolve `mqtt.platform.quboworld.com` to
+  your broker; accepts the local cert because the SAN matches
+- **Home Assistant** → plain MQTT on `:1883`, auto-discovers entities via
+  `publish.py`
 
 ## Documentation
 
