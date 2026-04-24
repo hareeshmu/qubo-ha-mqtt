@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Watch /config/{unit_uuid} for refreshed JWT tokens from Qubo cloud.
 
-When the cloud pushes a new token to your device via the bridge, this script
-catches it (by subscribing locally), extracts the password field, and updates
-your EMQX built-in auth DB so the device stays authenticated.
+When the cloud pushes a new token, this script catches it locally and
+updates BOTH credential stores that use it:
 
-Without this, the device's JWT expires every ~30 days and auth starts
-failing until you manually re-capture.
+  1. EMQX built-in auth DB  — so the device can keep connecting locally
+  2. EMQX cloud-bridge connector password  — so the bridge can keep
+     subscribing to /control and /config on the Qubo cloud
 
-Requires the cloud bridge from doc 5 to be operational.
+Both stores hold the same JWT but EMQX keeps them independent, so we
+update each explicitly. Skipping #2 makes the mobile app silently stop
+working ~30 days after the JWT last rotated.
 
 Config via env vars or CLI args:
   BROKER_HOST       (default: 127.0.0.1)
@@ -20,6 +22,7 @@ Config via env vars or CLI args:
   EMQX_PASS         (required)
   UNIT_UUID         (required — from your devices.yaml)
   MQTT_USERNAME     (required — the user_uuid that the device authenticates as)
+  BRIDGE_CONNECTOR  (default: qubo_cloud — EMQX connector name for the bridge)
 
 Run under systemd:
   [Service]
@@ -58,6 +61,7 @@ EMQX_USER = env("EMQX_USER", "admin")
 EMQX_PASS = env("EMQX_PASS")
 UNIT_UUID = env("UNIT_UUID")
 MQTT_USERNAME = env("MQTT_USERNAME")
+BRIDGE_CONNECTOR = env("BRIDGE_CONNECTOR", "qubo_cloud")
 
 
 def emqx_login() -> str:
@@ -84,6 +88,28 @@ def emqx_update_password(token: str, user_id: str, password: str) -> None:
                           headers={"Authorization": f"Bearer {token}"},
                           json={"user_id": user_id, "password": password},
                           timeout=10)
+    r.raise_for_status()
+
+
+def emqx_update_bridge_password(token: str, connector: str, password: str) -> None:
+    """Update the Password field on the cloud-bridge MQTT connector.
+
+    GET the connector, preserve every field, replace `password`, PUT it back.
+    Read-only fields returned by GET are stripped before PUT.
+    """
+    url = f"{EMQX_URL}/api/v5/connectors/mqtt:{connector}"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r = requests.get(url, headers=headers, timeout=10)
+    r.raise_for_status()
+    body = r.json()
+
+    for ro in ("status", "node_status", "status_reason",
+               "type", "name", "actions", "sources", "bridge_mode"):
+        body.pop(ro, None)
+    body["password"] = password
+
+    r = requests.put(url, headers=headers, json=body, timeout=10)
     r.raise_for_status()
 
 
@@ -126,7 +152,9 @@ def on_message(client, userdata, msg):
     try:
         token = emqx_login()
         emqx_update_password(token, MQTT_USERNAME, new_pw)
-        log.info(f"Updated EMQX password for user {MQTT_USERNAME}")
+        log.info(f"Updated EMQX auth DB for user {MQTT_USERNAME}")
+        emqx_update_bridge_password(token, BRIDGE_CONNECTOR, new_pw)
+        log.info(f"Updated EMQX bridge connector {BRIDGE_CONNECTOR} password")
     except Exception as e:
         log.error(f"Failed to update EMQX: {e}")
 
