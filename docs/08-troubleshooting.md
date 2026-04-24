@@ -129,6 +129,51 @@ device reconnecting in a loop.
 4. If you use `scripts/refresh-jwt.py`, this should auto-happen going
    forward.
 
+## JWT rotation verification (do once ~30 days after bridge setup)
+
+The device's JWT rotates every ~30 days. `scripts/refresh-jwt.py` should
+silently handle it on both sides (broker auth DB + bridge connector).
+Once per rotation cycle, confirm it actually worked before something
+breaks. Three checks, all run from the broker host or any LAN host:
+
+```bash
+EMQX=http://10.10.10.10:18083
+TOKEN=$(curl -s -X POST "$EMQX/api/v5/login" \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"<admin-pw>"}' | jq -r .token)
+H="Authorization: Bearer $TOKEN"
+
+# 1. Has the cloud ever pushed a /config JWT refresh to our bridge?
+#    After ~30 days this should be > 0. If 0, rotation never happened
+#    or the bridge wasn't receiving — re-check doc 5 clientId setup.
+curl -s -H "$H" "$EMQX/api/v5/sources/mqtt:qubo_config_in/metrics" \
+  | jq '.metrics | {received, matched}'
+
+# 2. Is the device still connected locally (JWT still valid in broker
+#    auth DB)? Heartbeat every few seconds = good.
+mosquitto_sub -h 10.10.10.10 -p 1883 -u mqtt -P '<pw>' \
+  -t "/monitor/<unit_uuid>/<device_uuid>/heartbeat" -W 10
+
+# 3. Is the bridge still authenticated to cloud? control_in.received
+#    should be > 0 and ticking up as the app sends commands.
+curl -s -H "$H" "$EMQX/api/v5/sources/mqtt:qubo_control_in/metrics" \
+  | jq '.metrics | {received, matched}'
+curl -s -H "$H" "$EMQX/api/v5/connectors/mqtt:qubo_cloud" \
+  | jq '{status, status_reason: .node_status[0].status_reason}'
+```
+
+**What good looks like:** all three show healthy numbers; connector
+`status: connected`; device heartbeat flowing.
+
+**If any fail:** most likely `refresh-jwt.py` died silently. Check its
+systemd/journal status, run `python scripts/refresh-jwt.py` manually to
+see what happens on the next cloud rotation, and fall back to a
+manual re-capture per doc 4.
+
+> Note: these checks need LAN access to the broker. They can't be
+> automated via Anthropic's cloud-based Claude Code routines — use a
+> local cron on the broker host if you want this watched periodically.
+
 ## Getting help
 
 If stuck, open an issue with:
