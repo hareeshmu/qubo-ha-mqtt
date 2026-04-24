@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Qubo Air Purifier",
+        "description": "Enter the device UUIDs captured from the Qubo cloud bridge. The HA MQTT integration must already be connected to your local broker.",
+        "data": {
+          "name": "Name",
+          "mac": "MAC address",
+          "unit_uuid": "Unit UUID",
+          "device_uuid": "Device UUID",
+          "entity_uuid": "Entity UUID",
+          "user_uuid": "User UUID",
+          "manufacturer": "Manufacturer",
+          "model": "Model"
+        }
+      }
+    },
+    "error": {
+      "invalid_uuid": "Must be a valid UUID (e.g. 00000000-0000-0000-0000-000000000000)",
+      "invalid_mac": "Must be a MAC address (e.g. AA:BB:CC:DD:EE:FF)"
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  }
+}
