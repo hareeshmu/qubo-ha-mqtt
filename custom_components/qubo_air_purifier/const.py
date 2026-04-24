@@ -15,7 +15,14 @@ CONF_MODEL = "model"
 DEFAULT_MANUFACTURER = "KPR"
 DEFAULT_MODEL = "Qubo Smart Air Purifier R700"
 
-PLATFORMS: list[str] = ["fan", "sensor", "switch", "select", "button"]
+PLATFORMS: list[str] = [
+    "fan",
+    "sensor",
+    "binary_sensor",
+    "switch",
+    "select",
+    "button",
+]
 
 REFRESH_INTERVAL_SECONDS = 300
 
