@@ -146,13 +146,10 @@ cards:
         ]]]
   - type: conditional
     conditions:
-      - condition: and
-        conditions:
-          - condition: state
-            entity: fan.qubo_air_purifier
-            state: "on"
-          - condition: template
-            value_template: "{{ state_attr('fan.qubo_air_purifier','preset_mode') == 'manual' }}"
+      - condition: template
+        value_template: >-
+          {{ is_state('fan.qubo_air_purifier','on')
+             and state_attr('fan.qubo_air_purifier','preset_mode') == 'manual' }}
     card:
       type: horizontal-stack
       card_mod:
