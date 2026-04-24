@@ -5,3 +5,4 @@ __pycache__/
 devices.local.yaml
 devices.yaml
 capture-schedule.log
+.claude/
