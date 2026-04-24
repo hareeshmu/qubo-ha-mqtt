@@ -24,7 +24,14 @@ PLATFORMS: list[str] = [
     "button",
 ]
 
-REFRESH_INTERVAL_SECONDS = 300
+# Adaptive polling: PM2.5 speeds up while air is changing, slows when stable.
+PM25_POLL_FAST_SECONDS = 30
+PM25_POLL_SLOW_SECONDS = 300
+PM25_DELTA_FAST_THRESHOLD = 5.0  # µg/m³: |ΔPM2.5| ≥ this → fast
+PM25_STABLE_POLLS_TO_SLOW = 3  # consecutive small-delta polls → slow
+
+# Filter life and usage stats rarely change — poll on a fixed long interval.
+FILTER_USAGE_POLL_SECONDS = 900
 
 PRESET_AUTO = "auto"
 PRESET_MANUAL = "manual"
