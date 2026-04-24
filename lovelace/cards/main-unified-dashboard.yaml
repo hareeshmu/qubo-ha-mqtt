@@ -144,42 +144,29 @@ cards:
             </div>
           `;
         ]]]
-  - type: conditional
-    conditions:
-      - condition: template
-        value_template: >-
-          {{ is_state('fan.qubo_air_purifier','on')
-             and state_attr('fan.qubo_air_purifier','preset_mode') == 'manual' }}
-    card:
-      type: horizontal-stack
-      card_mod:
-        style: |
-          :host > div,
-          #root {
-            justify-content: center !important;
-            display: flex !important;
-          }
-          :host > div > *,
-          #root > * {
-            flex: 0 0 auto !important;
-            width: auto !important;
-          }
-      cards:
+  - type: horizontal-stack
+    card_mod:
+      style: |
+        :host {
+          {% if not (is_state('fan.qubo_air_purifier','on') and state_attr('fan.qubo_air_purifier','preset_mode') == 'manual') %}
+          display: none !important;
+          {% endif %}
+        }
+        :host > div, #root {
+          justify-content: center !important;
+          display: flex !important;
+        }
+        :host > div > *, #root > * {
+          flex: 0 0 auto !important;
+          width: auto !important;
+        }
+    cards:
         - type: custom:button-card
           entity: fan.qubo_air_purifier
           triggers_update: fan.qubo_air_purifier
           show_state: false
           name: Low
           icon: mdi:fan-speed-1
-          card_mod:
-            style: |
-              ha-card {
-                {% set p = state_attr('fan.qubo_air_purifier','percentage') | int(0) %}
-                {% if p < 40 %}
-                background: rgba(96,165,250,0.22) !important;
-                border-color: rgba(96,165,250,0.7) !important;
-                {% endif %}
-              }
           tap_action:
             action: call-service
             service: fan.set_percentage
@@ -225,8 +212,7 @@ cards:
               - line-height: 1
           state:
             - operator: template
-              value: |
-                [[[ return (entity.attributes.percentage || 0) < 40; ]]]
+              value: "[[[ return (entity.attributes.percentage || 0) < 40; ]]]"
               styles:
                 card:
                   - background: rgba(96,165,250,0.22)
@@ -241,15 +227,6 @@ cards:
           show_state: false
           name: Medium
           icon: mdi:fan-speed-2
-          card_mod:
-            style: |
-              ha-card {
-                {% set p = state_attr('fan.qubo_air_purifier','percentage') | int(0) %}
-                {% if p >= 40 and p < 80 %}
-                background: rgba(96,165,250,0.22) !important;
-                border-color: rgba(96,165,250,0.7) !important;
-                {% endif %}
-              }
           tap_action:
             action: call-service
             service: fan.set_percentage
@@ -295,9 +272,7 @@ cards:
               - line-height: 1
           state:
             - operator: template
-              value: >
-                [[[ var p = entity.attributes.percentage || 0; return p > 40 &&
-                p < 80; ]]]
+              value: "[[[ var p = entity.attributes.percentage || 0; return p >= 40 && p < 80; ]]]"
               styles:
                 card:
                   - background: rgba(96,165,250,0.22)
@@ -312,15 +287,6 @@ cards:
           show_state: false
           name: High
           icon: mdi:fan-speed-3
-          card_mod:
-            style: |
-              ha-card {
-                {% set p = state_attr('fan.qubo_air_purifier','percentage') | int(0) %}
-                {% if p >= 80 %}
-                background: rgba(96,165,250,0.22) !important;
-                border-color: rgba(96,165,250,0.7) !important;
-                {% endif %}
-              }
           tap_action:
             action: call-service
             service: fan.set_percentage
@@ -366,8 +332,7 @@ cards:
               - line-height: 1
           state:
             - operator: template
-              value: |
-                [[[ return (entity.attributes.percentage || 0) >= 80; ]]]
+              value: "[[[ return (entity.attributes.percentage || 0) >= 80; ]]]"
               styles:
                 card:
                   - background: rgba(96,165,250,0.22)
