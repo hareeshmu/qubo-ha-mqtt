@@ -57,6 +57,7 @@ TOKEN=$(curl -s -X POST http://localhost:18083/api/v5/login \
 
 JWT='<your-device-JWT-from-doc-4>'
 USER='<your-user_uuid-from-doc-4>'
+MAC='<your-device-MAC-uppercase-e.g.-AA:BB:CC:DD:EE:FF>'
 
 curl -s -X POST "http://localhost:18083/api/v5/connectors" \
   -H "Authorization: Bearer $TOKEN" \
@@ -78,10 +79,21 @@ curl -s -X POST "http://localhost:18083/api/v5/connectors" \
     },
     \"pool_size\": 1,
     \"static_clientids\": [{\"node\": \"emqx@node1.emqx.local\",
-                            \"ids\": [\"EMQX_BRIDGE_qubo\"]}]
+                            \"ids\": [\"HPH_${MAC}\"]}]
   }" | jq .status
 # "connected"
 ```
+
+> ⚠️ **The `static_clientids` value matters — don't randomize it.**
+>
+> Qubo cloud routes `/control/<unit>/<device>/...` publishes **only to the
+> clientId that matches the device** (`HPH_<MAC>`). Any other value — e.g.
+> EMQX's default `EMQX_BRIDGE_<ts>` — gets a successful TLS + CONNACK
+> (EMQX shows `connected`) but **zero inbound messages** from cloud.
+> Outbound `/monitor` still flows, so the symptom is "mobile app sees
+> status but its buttons do nothing, and `/config` JWT refreshes never
+> arrive." Since the real device now connects to your local broker,
+> its cloud clientId slot is free — the bridge impersonates it.
 
 Check status — `connected` = auth succeeded with the cloud.
 
