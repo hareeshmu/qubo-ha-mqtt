@@ -1,15 +1,17 @@
 # Unified "main" card — mimics Qubo app: black background, ethereal ANIMATED
-# green halo, PM2.5 reading center, mode buttons at bottom, one visual card.
+# halo (breathing ring + particles sucking toward center), PM2.5 + Good/Moderate
+# label + active mode label inside, speed pills below (visible only in Manual),
+# mode buttons at the bottom.
 #
-# HACS requirements (install if missing):
-#   - button-card         (you have it)
-#   - mushroom            (you have it)
-#   - stack-in-card       https://github.com/custom-cards/stack-in-card
-#   - card-mod            https://github.com/thomasloven/lovelace-card-mod
+# Uses the HACS custom integration entity IDs (fan.qubo_air_purifier,
+# sensor.qubo_air_purifier_pm25). For the legacy publish.py-based setup,
+# replace the IDs back to fan.qubo_r700_fan / sensor.qubo_r700_pm25.
 #
-# Without stack-in-card/card-mod it still renders, just without the outer
-# seamless card; you can remove those wrappers.
-
+# Dependencies (HACS):
+#   - custom:stack-in-card
+#   - custom:button-card
+#   - custom:mushroom-template-card
+#   - card-mod
 type: custom:stack-in-card
 mode: vertical
 keep:
@@ -26,15 +28,14 @@ card_mod:
       padding: 8px;
     }
 cards:
-  # ── ANIMATED HALO ──
   - type: custom:button-card
-    entity: sensor.qubo_r700_pm25
+    entity: sensor.qubo_air_purifier_pm2_5
     show_state: false
     show_name: false
     show_icon: false
     tap_action:
       action: more-info
-      entity: fan.qubo_r700_fan
+      entity: fan.qubo_air_purifier
     styles:
       card:
         - background: transparent
@@ -107,18 +108,16 @@ cards:
           var v = parseInt(entity.state) || 0;
           var label = v < 50 ? 'Good' : v <= 100 ? 'Moderate' : v < 200 ? 'Poor' : 'Very Poor';
           var labelColor = v < 50 ? '#a7f3d0' : v <= 100 ? '#fef08a' : v < 200 ? '#fdba74' : '#fca5a5';
-          var fan = states['fan.qubo_r700_fan'];
+          var fan = states['fan.qubo_air_purifier'];
           var mode = fan && fan.state === 'on' ? (fan.attributes.preset_mode || 'auto') : 'off';
           var modeLabels = {
             off: 'OFF', auto: 'AUTO', manual: 'MANUAL', sleep: 'SLEEP', qsense: 'QSENSAI'
           };
           var modeLabel = modeLabels[mode] || '';
-          // Ring color reflects AIR QUALITY (PM2.5) — green/amber/orange/red.
-          var ringRgb = v < 50   ? '134,239,172'   // Good      (0-49)    mint green
-                      : v <= 100 ? '251,191,36'    // Moderate  (50-100)  amber
-                      : v < 200  ? '251,146,60'    // Poor      (101-199) orange
-                      :            '248,113,113';  // Very Poor (200+)    red
-          // When purifier is OFF, dim the ring to slate regardless of PM2.5.
+          var ringRgb = v < 50   ? '134,239,172'
+                      : v <= 100 ? '251,191,36'
+                      : v < 200  ? '251,146,60'
+                      :            '248,113,113';
           if (mode === 'off') ringRgb = '100,116,139';
           return `
             <div style="width:100%; height:100%; display:flex; justify-content:center; align-items:center; --ring-rgb: ${ringRgb};">
@@ -131,7 +130,6 @@ cards:
                   <div style="font-size: clamp(11px, 2vw, 13px); color: rgb(${ringRgb}); letter-spacing: 4px; font-weight: 500; margin-top: 10px; opacity: 0.85;">${modeLabel}</div>
                 </div>
               </div>
-              <!-- particles flow from outside halo toward center -->
               <div class="qubo-particle" style="--sx: -180px; --sy: -40px;  animation-delay: 0s;"></div>
               <div class="qubo-particle" style="--sx:  170px; --sy:  60px;  animation-delay: 0.8s;"></div>
               <div class="qubo-particle" style="--sx: -100px; --sy:  160px; animation-delay: 1.6s;"></div>
@@ -146,13 +144,15 @@ cards:
             </div>
           `;
         ]]]
-
-  # ── Speed pills (visible only in Manual mode) — above mode row ──
   - type: conditional
     conditions:
       - condition: state
-        entity: sensor.qubo_r700_current_mode
-        state: Manual
+        entity: fan.qubo_air_purifier
+        attribute: preset_mode
+        state: manual
+      - condition: state
+        entity: fan.qubo_air_purifier
+        state: "on"
     card:
       type: horizontal-stack
       card_mod:
@@ -169,15 +169,15 @@ cards:
           }
       cards:
         - type: custom:button-card
-          entity: fan.qubo_r700_fan
-          triggers_update: fan.qubo_r700_fan
+          entity: fan.qubo_air_purifier
+          triggers_update: fan.qubo_air_purifier
           show_state: false
           name: Low
           icon: mdi:fan-speed-1
           card_mod:
             style: |
               ha-card {
-                {% set p = state_attr('fan.qubo_r700_fan','percentage') | int(0) %}
+                {% set p = state_attr('fan.qubo_air_purifier','percentage') | int(0) %}
                 {% if p < 40 %}
                 background: rgba(96,165,250,0.22) !important;
                 border-color: rgba(96,165,250,0.7) !important;
@@ -186,8 +186,10 @@ cards:
           tap_action:
             action: call-service
             service: fan.set_percentage
-            target: {entity_id: fan.qubo_r700_fan}
-            data: {percentage: 33}
+            target:
+              entity_id: fan.qubo_air_purifier
+            data:
+              percentage: 33
           styles:
             card:
               - height: 32px
@@ -218,10 +220,10 @@ cards:
             icon:
               - width: 16px
               - height: 16px
-              - color: '#94a3b8'
+              - color: "#94a3b8"
             name:
               - font-size: 12px
-              - color: '#94a3b8'
+              - color: "#94a3b8"
               - font-weight: 500
               - line-height: 1
           state:
@@ -233,20 +235,19 @@ cards:
                   - background: rgba(96,165,250,0.22)
                   - border: 1.5px solid rgba(96,165,250,0.7)
                 icon:
-                  - color: '#60a5fa'
+                  - color: "#60a5fa"
                 name:
                   - color: white
-
         - type: custom:button-card
-          entity: fan.qubo_r700_fan
-          triggers_update: fan.qubo_r700_fan
+          entity: fan.qubo_air_purifier
+          triggers_update: fan.qubo_air_purifier
           show_state: false
           name: Medium
           icon: mdi:fan-speed-2
           card_mod:
             style: |
               ha-card {
-                {% set p = state_attr('fan.qubo_r700_fan','percentage') | int(0) %}
+                {% set p = state_attr('fan.qubo_air_purifier','percentage') | int(0) %}
                 {% if p >= 40 and p < 80 %}
                 background: rgba(96,165,250,0.22) !important;
                 border-color: rgba(96,165,250,0.7) !important;
@@ -255,8 +256,10 @@ cards:
           tap_action:
             action: call-service
             service: fan.set_percentage
-            target: {entity_id: fan.qubo_r700_fan}
-            data: {percentage: 66}
+            target:
+              entity_id: fan.qubo_air_purifier
+            data:
+              percentage: 66
           styles:
             card:
               - height: 32px
@@ -287,35 +290,35 @@ cards:
             icon:
               - width: 16px
               - height: 16px
-              - color: '#94a3b8'
+              - color: "#94a3b8"
             name:
               - font-size: 12px
-              - color: '#94a3b8'
+              - color: "#94a3b8"
               - font-weight: 500
               - line-height: 1
           state:
             - operator: template
-              value: |
-                [[[ var p = entity.attributes.percentage || 0; return p > 40 && p < 80; ]]]
+              value: >
+                [[[ var p = entity.attributes.percentage || 0; return p > 40 &&
+                p < 80; ]]]
               styles:
                 card:
                   - background: rgba(96,165,250,0.22)
                   - border: 1.5px solid rgba(96,165,250,0.7)
                 icon:
-                  - color: '#60a5fa'
+                  - color: "#60a5fa"
                 name:
                   - color: white
-
         - type: custom:button-card
-          entity: fan.qubo_r700_fan
-          triggers_update: fan.qubo_r700_fan
+          entity: fan.qubo_air_purifier
+          triggers_update: fan.qubo_air_purifier
           show_state: false
           name: High
           icon: mdi:fan-speed-3
           card_mod:
             style: |
               ha-card {
-                {% set p = state_attr('fan.qubo_r700_fan','percentage') | int(0) %}
+                {% set p = state_attr('fan.qubo_air_purifier','percentage') | int(0) %}
                 {% if p >= 80 %}
                 background: rgba(96,165,250,0.22) !important;
                 border-color: rgba(96,165,250,0.7) !important;
@@ -324,8 +327,10 @@ cards:
           tap_action:
             action: call-service
             service: fan.set_percentage
-            target: {entity_id: fan.qubo_r700_fan}
-            data: {percentage: 100}
+            target:
+              entity_id: fan.qubo_air_purifier
+            data:
+              percentage: 100
           styles:
             card:
               - height: 32px
@@ -356,10 +361,10 @@ cards:
             icon:
               - width: 16px
               - height: 16px
-              - color: '#94a3b8'
+              - color: "#94a3b8"
             name:
               - font-size: 12px
-              - color: '#94a3b8'
+              - color: "#94a3b8"
               - font-weight: 500
               - line-height: 1
           state:
@@ -371,11 +376,9 @@ cards:
                   - background: rgba(96,165,250,0.22)
                   - border: 1.5px solid rgba(96,165,250,0.7)
                 icon:
-                  - color: '#60a5fa'
+                  - color: "#60a5fa"
                 name:
                   - color: white
-
-  # ── Mode buttons (each lights up in its own mode color) ──
   - type: horizontal-stack
     cards:
       - type: custom:mushroom-template-card
@@ -384,14 +387,17 @@ cards:
         tap_action:
           action: call-service
           service: fan.turn_off
-          target: {entity_id: fan.qubo_r700_fan}
-        icon_color: "{% if is_state('fan.qubo_r700_fan','off') %}white{% else %}grey{% endif %}"
+          target:
+            entity_id: fan.qubo_air_purifier
+        icon_color: >-
+          {% if is_state('fan.qubo_air_purifier','off') %}white{% else %}grey{%
+          endif %}
         layout: vertical
         fill_container: true
         card_mod:
           style: |
             ha-card {
-              background: {% if is_state('fan.qubo_r700_fan','off') %}
+              background: {% if is_state('fan.qubo_air_purifier','off') %}
                 linear-gradient(135deg,#475569 0%,#334155 100%) !important
               {% else %} transparent !important {% endif %};
               border: none !important;
@@ -402,15 +408,19 @@ cards:
         tap_action:
           action: call-service
           service: fan.set_preset_mode
-          target: {entity_id: fan.qubo_r700_fan}
-          data: {preset_mode: auto}
-        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='auto' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+          target:
+            entity_id: fan.qubo_air_purifier
+          data:
+            preset_mode: auto
+        icon_color: >-
+          {% if state_attr('fan.qubo_air_purifier','preset_mode')=='auto' and
+          is_state('fan.qubo_air_purifier','on') %}white{% else %}grey{% endif %}
         layout: vertical
         fill_container: true
         card_mod:
           style: |
             ha-card {
-              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='auto' and is_state('fan.qubo_r700_fan','on') %}
+              background: {% if state_attr('fan.qubo_air_purifier','preset_mode')=='auto' and is_state('fan.qubo_air_purifier','on') %}
                 linear-gradient(135deg,#22c55e 0%,#15803d 100%) !important
               {% else %} transparent !important {% endif %};
               border: none !important;
@@ -421,15 +431,19 @@ cards:
         tap_action:
           action: call-service
           service: fan.set_preset_mode
-          target: {entity_id: fan.qubo_r700_fan}
-          data: {preset_mode: manual}
-        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='manual' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+          target:
+            entity_id: fan.qubo_air_purifier
+          data:
+            preset_mode: manual
+        icon_color: >-
+          {% if state_attr('fan.qubo_air_purifier','preset_mode')=='manual' and
+          is_state('fan.qubo_air_purifier','on') %}white{% else %}grey{% endif %}
         layout: vertical
         fill_container: true
         card_mod:
           style: |
             ha-card {
-              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='manual' and is_state('fan.qubo_r700_fan','on') %}
+              background: {% if state_attr('fan.qubo_air_purifier','preset_mode')=='manual' and is_state('fan.qubo_air_purifier','on') %}
                 linear-gradient(135deg,#14b8a6 0%,#0f766e 100%) !important
               {% else %} transparent !important {% endif %};
               border: none !important;
@@ -440,15 +454,19 @@ cards:
         tap_action:
           action: call-service
           service: fan.set_preset_mode
-          target: {entity_id: fan.qubo_r700_fan}
-          data: {preset_mode: sleep}
-        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='sleep' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+          target:
+            entity_id: fan.qubo_air_purifier
+          data:
+            preset_mode: sleep
+        icon_color: >-
+          {% if state_attr('fan.qubo_air_purifier','preset_mode')=='sleep' and
+          is_state('fan.qubo_air_purifier','on') %}white{% else %}grey{% endif %}
         layout: vertical
         fill_container: true
         card_mod:
           style: |
             ha-card {
-              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='sleep' and is_state('fan.qubo_r700_fan','on') %}
+              background: {% if state_attr('fan.qubo_air_purifier','preset_mode')=='sleep' and is_state('fan.qubo_air_purifier','on') %}
                 linear-gradient(135deg,#a78bfa 0%,#7c3aed 100%) !important
               {% else %} transparent !important {% endif %};
               border: none !important;
@@ -459,17 +477,20 @@ cards:
         tap_action:
           action: call-service
           service: fan.set_preset_mode
-          target: {entity_id: fan.qubo_r700_fan}
-          data: {preset_mode: qsense}
-        icon_color: "{% if state_attr('fan.qubo_r700_fan','preset_mode')=='qsense' and is_state('fan.qubo_r700_fan','on') %}white{% else %}grey{% endif %}"
+          target:
+            entity_id: fan.qubo_air_purifier
+          data:
+            preset_mode: qsense
+        icon_color: >-
+          {% if state_attr('fan.qubo_air_purifier','preset_mode')=='qsense' and
+          is_state('fan.qubo_air_purifier','on') %}white{% else %}grey{% endif %}
         layout: vertical
         fill_container: true
         card_mod:
           style: |
             ha-card {
-              background: {% if state_attr('fan.qubo_r700_fan','preset_mode')=='qsense' and is_state('fan.qubo_r700_fan','on') %}
+              background: {% if state_attr('fan.qubo_air_purifier','preset_mode')=='qsense' and is_state('fan.qubo_air_purifier','on') %}
                 linear-gradient(135deg,#2563eb 0%,#1e40af 100%) !important
               {% else %} transparent !important {% endif %};
               border: none !important;
             }
-
