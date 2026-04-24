@@ -5,12 +5,14 @@ import json
 import logging
 import time
 from collections.abc import Callable
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
     CONF_DEVICE_UUID,
@@ -18,6 +20,10 @@ from .const import (
     CONF_UNIT_UUID,
     CONF_USER_UUID,
     DOMAIN,
+    REFRESH_INTERVAL_SECONDS,
+    SERVICE_AQI_REFRESH,
+    SERVICE_FILTER_RESET,
+    SERVICE_PURIFIER_USAGE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,17 +53,33 @@ class QuboCoordinator:
         self.state: dict[str, dict[str, Any]] = {}
         self.available = False
         self._unsub: Callable[[], None] | None = None
+        self._unsub_poll: Callable[[], None] | None = None
 
     async def async_start(self) -> None:
         self._unsub = await mqtt.async_subscribe(
             self.hass, f"{self.mon_prefix}/#", self._on_message, qos=0
         )
         _LOGGER.debug("Subscribed to %s/#", self.mon_prefix)
+        await self._poll_all()
+        self._unsub_poll = async_track_time_interval(
+            self.hass, self._poll_tick, timedelta(seconds=REFRESH_INTERVAL_SECONDS)
+        )
 
     async def async_stop(self) -> None:
         if self._unsub is not None:
             self._unsub()
             self._unsub = None
+        if self._unsub_poll is not None:
+            self._unsub_poll()
+            self._unsub_poll = None
+
+    async def _poll_tick(self, _now: Any) -> None:
+        await self._poll_all()
+
+    async def _poll_all(self) -> None:
+        await self.async_send_command(SERVICE_AQI_REFRESH, "refresh")
+        await self.async_send_command(SERVICE_FILTER_RESET, "getCurrentStatus")
+        await self.async_send_command(SERVICE_PURIFIER_USAGE, "getPurifierUsage")
 
     @callback
     def _on_message(self, msg: mqtt.ReceiveMessage) -> None:
