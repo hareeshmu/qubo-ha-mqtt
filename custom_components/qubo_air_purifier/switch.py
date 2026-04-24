@@ -18,6 +18,8 @@ from .entity import QuboEntity
 class QuboSwitchDescription(SwitchEntityDescription):
     service: str
     attr_key: str
+    value_on: str
+    value_off: str
 
 
 SWITCHES: tuple[QuboSwitchDescription, ...] = (
@@ -27,7 +29,9 @@ SWITCHES: tuple[QuboSwitchDescription, ...] = (
         name="Child Lock",
         icon="mdi:lock",
         service=SERVICE_CHILD_LOCK,
-        attr_key="switch",
+        attr_key="state",
+        value_on="enable",
+        value_off="disable",
     ),
     QuboSwitchDescription(
         key="silent_mode",
@@ -35,7 +39,9 @@ SWITCHES: tuple[QuboSwitchDescription, ...] = (
         name="Silent Mode",
         icon="mdi:volume-off",
         service=SERVICE_SILENT_MODE,
-        attr_key="switch",
+        attr_key="state",
+        value_on="enable",
+        value_off="disable",
     ),
 )
 
@@ -66,18 +72,18 @@ class QuboSwitch(QuboEntity, SwitchEntity):
         )
         if raw is None:
             return None
-        return str(raw).lower() == "on"
+        return str(raw).lower() == self.entity_description.value_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.async_set_attribute(
             self.entity_description.service,
             self.entity_description.attr_key,
-            "on",
+            self.entity_description.value_on,
         )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.async_set_attribute(
             self.entity_description.service,
             self.entity_description.attr_key,
-            "off",
+            self.entity_description.value_off,
         )
