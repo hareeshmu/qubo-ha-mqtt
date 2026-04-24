@@ -65,7 +65,34 @@ Setup is broken into numbered guides — follow in order:
 | 7 | [Lovelace dashboard](docs/07-lovelace-dashboard.md) | Qubo-app-style animated dashboard |
 | 8 | [Troubleshooting](docs/08-troubleshooting.md) | Common issues and fixes |
 
-## Quick start (for experienced users)
+## Two integration options
+
+There are two ways to surface the purifier in HA. Pick one:
+
+### Option A — Custom Integration (recommended, HACS-ready)
+
+The `custom_components/qubo_air_purifier/` folder is a proper HA Custom
+Integration. It talks to your MQTT broker directly (via HA's `mqtt`
+integration), handles entity lifecycle, auto-polls PM2.5 every 5 minutes,
+and includes a Config Flow UI — no `devices.yaml`, no `publish.py`, no cron.
+
+Install via HACS:
+
+1. In HACS → *Integrations* → ⋮ → *Custom repositories* → add this repo URL,
+   category *Integration*.
+2. Install "Qubo Air Purifier" and restart HA.
+3. Settings → *Devices & Services* → *Add Integration* → "Qubo Air Purifier"
+   and enter the UUIDs captured per [docs/04](docs/04-capture-jwt.md).
+
+Or install manually: copy `custom_components/qubo_air_purifier/` into your
+HA `config/custom_components/` folder and restart.
+
+Requires: HA's MQTT integration already connected to your local broker.
+
+### Option B — MQTT Discovery publisher (original)
+
+Run `publish.py` once to push Discovery configs to HA via your broker.
+Simpler dependency chain, but needs a cron for periodic refresh.
 
 ```bash
 # 1. Clone

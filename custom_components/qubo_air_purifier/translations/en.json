@@ -23,5 +23,53 @@
     "abort": {
       "already_configured": "This device is already configured."
     }
+  },
+  "entity": {
+    "fan": {
+      "fan": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "auto": "Auto",
+              "manual": "Manual",
+              "sleep": "Sleep",
+              "qsense": "QSensAI"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "pm25": {"name": "PM2.5"},
+      "filter_life": {"name": "Filter Life Remaining"},
+      "mcu_version": {"name": "MCU Version"},
+      "usage_min_pm25": {"name": "Today Min PM2.5"},
+      "usage_max_pm25": {"name": "Today Max PM2.5"},
+      "usage_avg_pm25": {"name": "Today Avg PM2.5"},
+      "usage_total_minutes": {"name": "Total Usage Minutes"}
+    },
+    "binary_sensor": {
+      "air_quality_good": {"name": "Air Quality Good"}
+    },
+    "switch": {
+      "child_lock": {"name": "Child Lock"},
+      "silent_mode": {"name": "Silent Mode"}
+    },
+    "select": {
+      "dimmer": {
+        "name": "Display Dimmer",
+        "state": {"off": "Off", "low": "Low", "mid": "Medium", "high": "High"}
+      },
+      "timer": {
+        "name": "Auto-off Timer",
+        "state": {"0": "Off", "1": "1 hour", "2": "2 hours", "4": "4 hours", "8": "8 hours"}
+      }
+    },
+    "button": {
+      "refresh_aqi": {"name": "Refresh AQI"},
+      "refresh_filter": {"name": "Refresh Filter Status"},
+      "refresh_usage": {"name": "Refresh Usage Stats"},
+      "reboot": {"name": "Reboot"}
+    }
   }
 }
