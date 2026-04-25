@@ -1,6 +1,7 @@
 """Fan entity — power, speed (1-3), preset modes. Auto-powers-on for preset/speed."""
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from homeassistant.components.fan import FanEntity, FanEntityFeature
@@ -100,7 +101,7 @@ class QuboFan(QuboEntity, FanEntity):
                 SERVICE_FAN_MODE, "state", preset_mode
             )
         if percentage is not None:
-            step = int(percentage_to_ranged_value(SPEED_RANGE, percentage))
+            step = math.ceil(percentage_to_ranged_value(SPEED_RANGE, percentage))
             await self.coordinator.async_set_attribute(
                 SERVICE_FAN_SPEED, "speed", str(step)
             )
@@ -114,7 +115,7 @@ class QuboFan(QuboEntity, FanEntity):
             return
         if not self.is_on:
             await self.coordinator.async_set_attribute(SERVICE_LC_SWITCH, "power", "on")
-        step = int(percentage_to_ranged_value(SPEED_RANGE, percentage))
+        step = math.ceil(percentage_to_ranged_value(SPEED_RANGE, percentage))
         await self.coordinator.async_set_attribute(
             SERVICE_FAN_SPEED, "speed", str(step)
         )
