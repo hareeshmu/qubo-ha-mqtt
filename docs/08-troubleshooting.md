@@ -129,6 +129,31 @@ device reconnecting in a loop.
 4. If you use `scripts/refresh-jwt.py`, this should auto-happen going
    forward.
 
+## Qubo app shows "online" but buttons do nothing
+
+Symptom: HA control of the device works fine. The Qubo mobile app shows
+the device as online but tapping any button has no effect on the device.
+
+Both ends of the cloud path can go stale at once: the **app's MQTT
+session** (phone OS killed it in background) AND **cloud's routing entry
+for our bridge clientId** (stuck after a previous disconnect). Fixing
+only one usually doesn't help — the next press still misses.
+
+Recovery:
+
+```bash
+# 1. Cycle the bridge (clears cloud-side stuck routing for HPH_<MAC>)
+EMQX_PASS='<admin-pw>' EMQX_URL=http://10.10.10.10:18083 \
+  scripts/cycle-bridge.sh
+
+# 2. Force-kill the Qubo app on your phone (swipe out of recents)
+# 3. Reopen the app; tap a button — should work
+```
+
+If symptom recurs frequently, the most reliable fix is to **just use HA
+for control** — it talks to your local broker and doesn't depend on
+either the app's session or the cloud routing.
+
 ## JWT rotation verification (do once ~30 days after bridge setup)
 
 The device's JWT rotates every ~30 days. `scripts/refresh-jwt.py` should
